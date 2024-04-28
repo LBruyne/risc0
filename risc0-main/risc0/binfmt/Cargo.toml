@@ -1,0 +1,35 @@
+[package]
+name = "risc0-binfmt"
+description = "RISC Zero binary format crate"
+version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+
+[dev-dependencies]
+risc0-zkvm-methods = { path = "../zkvm/methods" }
+test-log = { version = "0.2", default-features = false, features = ["trace"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dependencies]
+anyhow = { version = "1.0", default-features = false }
+elf = { version = "0.7", default-features = false }
+risc0-zkp = { workspace = true }
+risc0-zkvm-platform = { workspace = true }
+serde = { version = "1.0", default-features = false, features = [
+  "derive",
+  "alloc",
+] }
+tracing = { version = "0.1", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+  "anyhow/std",
+  "elf/std",
+  "risc0-zkp/std",
+  "serde/std",
+  "tracing/log",
+  "tracing/std",
+]

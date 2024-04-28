@@ -1,0 +1,17 @@
+[package]
+name = "profiling"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+fibonacci-methods = { path = "methods" }
+risc0-zkvm = { path = "../../risc0/zkvm" }
+serde = "1.0"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[features]
+cuda = ["risc0-zkvm/cuda"]
+default = []
+metal = ["risc0-zkvm/metal"]
+prove = ["risc0-zkvm/prove"]
