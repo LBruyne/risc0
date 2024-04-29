@@ -14,7 +14,7 @@
 
 //! This module implements the Executor.
 
-use std::{cell::RefCell, fmt::Debug, io::Write, mem, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fmt::Debug, io::Write, mem, sync::Arc};
 
 use addr2line::{
     fallible_iterator::FallibleIterator,
@@ -78,7 +78,7 @@ const DEFAULT_SEGMENT_LIMIT_PO2: u32 = 20; // 1M cycles
 // Capture the journal output in a buffer that we can access afterwards.
 #[derive(Clone, Default)]
 struct Journal {
-    buf: Rc<RefCell<Vec<u8>>>,
+    buf: Arc<RefCell<Vec<u8>>>,
 }
 
 impl Write for Journal {
@@ -136,7 +136,7 @@ pub struct ExecutorImpl<'a> {
     exit_code: Option<ExitCode>,
     obj_ctx: Option<ObjectContext>,
     output_digest: Option<Digest>,
-    profiler: Option<Rc<RefCell<Profiler>>>,
+    profiler: Option<Arc<RefCell<Profiler>>>,
 }
 
 #[derive(Default)]
@@ -161,7 +161,7 @@ impl<'a> ExecutorImpl<'a> {
         env: ExecutorEnv<'a>,
         image: MemoryImage,
         obj_ctx: Option<ObjectContext>,
-        profiler: Option<Rc<RefCell<Profiler>>>,
+        profiler: Option<Arc<RefCell<Profiler>>>,
     ) -> Result<Self> {
         // Enforce segment_limit_po2 bounds
         let segment_limit_po2 = env.segment_limit_po2.unwrap_or(DEFAULT_SEGMENT_LIMIT_PO2) as usize;
@@ -228,7 +228,7 @@ impl<'a> ExecutorImpl<'a> {
         };
 
         let profiler = if env.pprof_out.is_some() {
-            let profiler = Rc::new(RefCell::new(Profiler::new(elf, None)?));
+            let profiler = Arc::new(RefCell::new(Profiler::new(elf, None)?));
             env.trace.push(profiler.clone());
             Some(profiler)
         } else {

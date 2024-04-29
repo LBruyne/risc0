@@ -339,11 +339,11 @@ pub struct Sha256HashSuite<F: Field> {
 impl<F: Field> Sha256HashSuite<F> {
     /// Construct a Sha256HashSuite
     pub fn new_suite() -> super::HashSuite<F> {
-        use alloc::rc::Rc;
+        use alloc::sync::Arc;
         super::HashSuite {
             name: "sha-256".into(),
-            hashfn: Rc::new(Sha256HashFn {}),
-            rng: Rc::new(Sha256RngFactory {}),
+            hashfn: Arc::new(Sha256HashFn {}),
+            rng: Arc::new(Sha256RngFactory {}),
         }
     }
 }

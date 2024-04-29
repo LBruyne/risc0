@@ -16,7 +16,7 @@
 //! security of 128 bits.
 pub(crate) mod consts;
 
-use alloc::rc::Rc;
+use alloc::sync::Arc;
 
 use risc0_core::field::{
     baby_bear::{BabyBear, BabyBearElem, BabyBearExtElem},
@@ -229,8 +229,8 @@ impl Poseidon254HashSuite {
     pub fn new_suite() -> HashSuite<BabyBear> {
         HashSuite {
             name: "poseidon254".into(),
-            hashfn: Rc::new(Poseidon254HashFn {}),
-            rng: Rc::new(PoseidonRngFactory {}),
+            hashfn: Arc::new(Poseidon254HashFn {}),
+            rng: Arc::new(PoseidonRngFactory {}),
         }
     }
 }

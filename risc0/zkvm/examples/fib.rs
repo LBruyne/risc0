@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use clap::Parser;
 use risc0_zkvm::{
@@ -71,7 +71,7 @@ fn main() {
 }
 
 #[tracing::instrument(skip_all)]
-fn top(prover: Rc<dyn ProverServer>, iterations: u32, skip_prover: bool) -> Metrics {
+fn top(prover: Arc<dyn ProverServer>, iterations: u32, skip_prover: bool) -> Metrics {
     let env = ExecutorEnv::builder()
         .write_slice(&[iterations])
         .build()

@@ -14,7 +14,7 @@
 
 //! Handlers for two-way private I/O between host and guest.
 
-use std::{cell::RefCell, cmp::min, collections::HashMap, rc::Rc, str::from_utf8};
+use std::{cell::RefCell, cmp::min, collections::HashMap, str::from_utf8, sync::Arc};
 
 use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
@@ -92,7 +92,7 @@ pub trait SyscallContext {
 
 #[derive(Clone)]
 pub(crate) struct SyscallTable<'a> {
-    pub(crate) inner: HashMap<String, Rc<RefCell<dyn Syscall + 'a>>>,
+    pub(crate) inner: HashMap<String, Arc<RefCell<dyn Syscall + 'a>>>,
 }
 
 impl<'a> SyscallTable<'a> {
@@ -118,7 +118,7 @@ impl<'a> SyscallTable<'a> {
         for (syscall, handler) in env.slice_io.borrow().inner.iter() {
             let handler = SysSliceIo::new(handler.clone());
             this.inner
-                .insert(syscall.clone(), Rc::new(RefCell::new(handler)));
+                .insert(syscall.clone(), Arc::new(RefCell::new(handler)));
         }
 
         this
@@ -129,12 +129,14 @@ impl<'a> SyscallTable<'a> {
         syscall: SyscallName,
         handler: impl Syscall + 'a,
     ) -> &mut Self {
-        self.inner
-            .insert(syscall.as_str().to_string(), Rc::new(RefCell::new(handler)));
+        self.inner.insert(
+            syscall.as_str().to_string(),
+            Arc::new(RefCell::new(handler)),
+        );
         self
     }
 
-    pub(crate) fn get_syscall(&self, name: &str) -> Option<&Rc<RefCell<(dyn Syscall + 'a)>>> {
+    pub(crate) fn get_syscall(&self, name: &str) -> Option<&Arc<RefCell<(dyn Syscall + 'a)>>> {
         self.inner.get(name)
     }
 }
@@ -210,11 +212,11 @@ impl Syscall for SysRandom {
 
 #[derive(Clone)]
 pub(crate) struct SysVerify {
-    pub(crate) assumptions: Rc<RefCell<Assumptions>>,
+    pub(crate) assumptions: Arc<RefCell<Assumptions>>,
 }
 
 impl SysVerify {
-    pub(crate) fn new(assumptions: Rc<RefCell<Assumptions>>) -> Self {
+    pub(crate) fn new(assumptions: Arc<RefCell<Assumptions>>) -> Self {
         Self { assumptions }
     }
 
@@ -415,13 +417,13 @@ impl Syscall for Args {
 
 /// A wrapper around a SliceIo that exposes it as a Syscall handler.
 pub struct SysSliceIo<'a> {
-    handler: Rc<RefCell<dyn SliceIo + 'a>>,
+    handler: Arc<RefCell<dyn SliceIo + 'a>>,
     stored_result: RefCell<Option<Bytes>>,
 }
 
 impl<'a> SysSliceIo<'a> {
     /// Wraps the given [SliceIo] into a [SysSliceIo].
-    pub fn new(handler: Rc<RefCell<dyn SliceIo + 'a>>) -> Self {
+    pub fn new(handler: Arc<RefCell<dyn SliceIo + 'a>>) -> Self {
         Self {
             handler,
             stored_result: RefCell::new(None),
@@ -491,7 +493,7 @@ impl<'a> Syscall for PosixIo<'a> {
     }
 }
 
-impl<'a> Syscall for Rc<RefCell<PosixIo<'a>>> {
+impl<'a> Syscall for Arc<RefCell<PosixIo<'a>>> {
     fn syscall(
         &mut self,
         syscall: &str,

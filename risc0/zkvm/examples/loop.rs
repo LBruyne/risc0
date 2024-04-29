@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{process::Command, rc::Rc, time::Instant};
+use std::{process::Command, sync::Arc, time::Instant};
 
 use clap::Parser;
 use human_repr::{HumanCount, HumanDuration};
@@ -182,7 +182,7 @@ fn run_with_iterations(iterations: usize, args: &Args) {
 }
 
 #[tracing::instrument(skip_all)]
-fn top(prover: Rc<dyn ProverServer>, iterations: u64, po2: u32) -> (Session, Receipt) {
+fn top(prover: Arc<dyn ProverServer>, iterations: u64, po2: u32) -> (Session, Receipt) {
     let env = ExecutorEnv::builder()
         .write(&SpecWithIters(BenchmarkSpec::SimpleLoop, iterations))
         .unwrap()

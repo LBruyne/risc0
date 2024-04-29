@@ -22,7 +22,7 @@ mod prover_impl;
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Result};
 use cfg_if::cfg_if;
@@ -143,10 +143,10 @@ where
     C: CircuitHal<H>,
 {
     /// A [Hal] implementation.
-    pub hal: Rc<H>,
+    pub hal: Arc<H>,
 
     /// An [CircuitHal] implementation.
-    pub circuit_hal: Rc<C>,
+    pub circuit_hal: Arc<C>,
 }
 
 impl Session {
@@ -198,7 +198,7 @@ impl Segment {
 
 #[cfg(feature = "cuda")]
 mod cuda {
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     use anyhow::{bail, Result};
     use risc0_circuit_rv32im::cuda::{CudaCircuitHalPoseidon2, CudaCircuitHalSha256};
@@ -207,20 +207,20 @@ mod cuda {
     use super::{HalPair, ProverImpl, ProverServer};
     use crate::ProverOpts;
 
-    pub fn get_prover_server(opts: &ProverOpts) -> Result<Rc<dyn ProverServer>> {
+    pub fn get_prover_server(opts: &ProverOpts) -> Result<Arc<dyn ProverServer>> {
         match opts.hashfn.as_str() {
             "sha-256" => {
-                let hal = Rc::new(CudaHalSha256::new());
-                let circuit_hal = Rc::new(CudaCircuitHalSha256::new(hal.clone()));
-                Ok(Rc::new(ProverImpl::new(
+                let hal = Arc::new(CudaHalSha256::new());
+                let circuit_hal = Arc::new(CudaCircuitHalSha256::new(hal.clone()));
+                Ok(Arc::new(ProverImpl::new(
                     "cuda",
                     HalPair { hal, circuit_hal },
                 )))
             }
             "poseidon2" => {
-                let hal = Rc::new(CudaHalPoseidon2::new());
-                let circuit_hal = Rc::new(CudaCircuitHalPoseidon2::new(hal.clone()));
-                Ok(Rc::new(ProverImpl::new(
+                let hal = Arc::new(CudaHalPoseidon2::new());
+                let circuit_hal = Arc::new(CudaCircuitHalPoseidon2::new(hal.clone()));
+                Ok(Arc::new(ProverImpl::new(
                     "cuda",
                     HalPair { hal, circuit_hal },
                 )))
@@ -232,7 +232,7 @@ mod cuda {
 
 #[cfg(feature = "metal")]
 mod metal {
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     use anyhow::{bail, Result};
     use risc0_circuit_rv32im::metal::MetalCircuitHal;
@@ -243,20 +243,20 @@ mod metal {
     use super::{HalPair, ProverImpl, ProverServer};
     use crate::ProverOpts;
 
-    pub fn get_prover_server(opts: &ProverOpts) -> Result<Rc<dyn ProverServer>> {
+    pub fn get_prover_server(opts: &ProverOpts) -> Result<Arc<dyn ProverServer>> {
         match opts.hashfn.as_str() {
             "sha-256" => {
-                let hal = Rc::new(MetalHalSha256::new());
-                let circuit_hal = Rc::new(MetalCircuitHal::<MetalHashSha256>::new(hal.clone()));
-                Ok(Rc::new(ProverImpl::new(
+                let hal = Arc::new(MetalHalSha256::new());
+                let circuit_hal = Arc::new(MetalCircuitHal::<MetalHashSha256>::new(hal.clone()));
+                Ok(Arc::new(ProverImpl::new(
                     "metal",
                     HalPair { hal, circuit_hal },
                 )))
             }
             "poseidon2" => {
-                let hal = Rc::new(MetalHalPoseidon2::new());
-                let circuit_hal = Rc::new(MetalCircuitHal::<MetalHashPoseidon2>::new(hal.clone()));
-                Ok(Rc::new(ProverImpl::new(
+                let hal = Arc::new(MetalHalPoseidon2::new());
+                let circuit_hal = Arc::new(MetalCircuitHal::<MetalHashPoseidon2>::new(hal.clone()));
+                Ok(Arc::new(ProverImpl::new(
                     "metal",
                     HalPair { hal, circuit_hal },
                 )))
@@ -268,7 +268,7 @@ mod metal {
 
 #[allow(dead_code)]
 mod cpu {
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     use anyhow::{bail, Result};
     use risc0_circuit_rv32im::cpu::CpuCircuitHal;
@@ -280,25 +280,25 @@ mod cpu {
     use super::{HalPair, ProverImpl, ProverServer};
     use crate::{host::CIRCUIT, ProverOpts};
 
-    pub fn get_prover_server(opts: &ProverOpts) -> Result<Rc<dyn ProverServer>> {
+    pub fn get_prover_server(opts: &ProverOpts) -> Result<Arc<dyn ProverServer>> {
         let suite = match opts.hashfn.as_str() {
             "sha-256" => Sha256HashSuite::new_suite(),
             "poseidon2" => Poseidon2HashSuite::new_suite(),
             _ => bail!("Unsupported hashfn: {}", opts.hashfn),
         };
-        let hal = Rc::new(CpuHal::new(suite));
-        let circuit_hal = Rc::new(CpuCircuitHal::new(&CIRCUIT));
+        let hal = Arc::new(CpuHal::new(suite));
+        let circuit_hal = Arc::new(CpuCircuitHal::new(&CIRCUIT));
         let hal_pair = HalPair { hal, circuit_hal };
-        Ok(Rc::new(ProverImpl::new("cpu", hal_pair)))
+        Ok(Arc::new(ProverImpl::new("cpu", hal_pair)))
     }
 }
 
 /// Select a [ProverServer] based on the specified [ProverOpts] and currently
 /// compiled features.
-pub fn get_prover_server(opts: &ProverOpts) -> Result<Rc<dyn ProverServer>> {
+pub fn get_prover_server(opts: &ProverOpts) -> Result<Arc<dyn ProverServer>> {
     if is_dev_mode() {
         eprintln!("WARNING: proving in dev mode. This will not generate valid, secure proofs.");
-        return Ok(Rc::new(DevModeProver));
+        return Ok(Arc::new(DevModeProver));
     }
 
     cfg_if! {

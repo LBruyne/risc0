@@ -20,7 +20,6 @@ use std::{
     io::{BufRead, BufReader, Cursor, Read, Write},
     mem,
     path::{Path, PathBuf},
-    rc::Rc,
     sync::Arc,
 };
 
@@ -88,11 +87,11 @@ pub struct ExecutorEnv<'a> {
     pub(crate) args: Vec<String>,
     pub(crate) segment_limit_po2: Option<u32>,
     pub(crate) session_limit: Option<u64>,
-    pub(crate) posix_io: Rc<RefCell<PosixIo<'a>>>,
-    pub(crate) slice_io: Rc<RefCell<SliceIoTable<'a>>>,
+    pub(crate) posix_io: Arc<RefCell<PosixIo<'a>>>,
+    pub(crate) slice_io: Arc<RefCell<SliceIoTable<'a>>>,
     pub(crate) input: Vec<u8>,
-    pub(crate) trace: Vec<Rc<RefCell<dyn TraceCallback + 'a>>>,
-    pub(crate) assumptions: Rc<RefCell<Assumptions>>,
+    pub(crate) trace: Vec<Arc<RefCell<dyn TraceCallback + 'a>>>,
+    pub(crate) assumptions: Arc<RefCell<Assumptions>>,
     pub(crate) segment_path: Option<SegmentPath>,
     pub(crate) pprof_out: Option<PathBuf>,
 }
@@ -355,7 +354,7 @@ impl<'a> ExecutorEnvBuilder<'a> {
 
     /// Add a callback handler for raw trace messages.
     pub fn trace_callback(&mut self, callback: impl TraceCallback + 'a) -> &mut Self {
-        self.inner.trace.push(Rc::new(RefCell::new(callback)));
+        self.inner.trace.push(Arc::new(RefCell::new(callback)));
         self
     }
 

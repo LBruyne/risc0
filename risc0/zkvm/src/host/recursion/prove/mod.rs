@@ -19,7 +19,7 @@ pub mod preflight;
 mod program;
 pub mod zkr;
 
-use std::{collections::VecDeque, mem::take, rc::Rc};
+use std::{collections::VecDeque, mem::take, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
 use hex::FromHex;
@@ -237,30 +237,30 @@ mod cuda {
         hal::cuda::{CudaHalPoseidon, CudaHalPoseidon2, CudaHalSha256},
     };
 
-    use super::{BabyBear, CircuitImpl, CpuCircuitHal, CpuHal, HalPair, Rc, CIRCUIT};
+    use super::{Arc, BabyBear, CircuitImpl, CpuCircuitHal, CpuHal, HalPair, CIRCUIT};
 
     pub fn sha256_hal_pair() -> HalPair<CudaHalSha256, CudaCircuitHalSha256> {
-        let hal = Rc::new(CudaHalSha256::new());
-        let circuit_hal = Rc::new(CudaCircuitHalSha256::new(hal.clone()));
+        let hal = Arc::new(CudaHalSha256::new());
+        let circuit_hal = Arc::new(CudaCircuitHalSha256::new(hal.clone()));
         HalPair { hal, circuit_hal }
     }
 
     pub fn poseidon_hal_pair() -> HalPair<CudaHalPoseidon, CudaCircuitHalPoseidon> {
-        let hal = Rc::new(CudaHalPoseidon::new());
-        let circuit_hal = Rc::new(CudaCircuitHalPoseidon::new(hal.clone()));
+        let hal = Arc::new(CudaHalPoseidon::new());
+        let circuit_hal = Arc::new(CudaCircuitHalPoseidon::new(hal.clone()));
         HalPair { hal, circuit_hal }
     }
 
     pub fn poseidon2_hal_pair() -> HalPair<CudaHalPoseidon2, CudaCircuitHalPoseidon2> {
-        let hal = Rc::new(CudaHalPoseidon2::new());
-        let circuit_hal = Rc::new(CudaCircuitHalPoseidon2::new(hal.clone()));
+        let hal = Arc::new(CudaHalPoseidon2::new());
+        let circuit_hal = Arc::new(CudaCircuitHalPoseidon2::new(hal.clone()));
         HalPair { hal, circuit_hal }
     }
 
     pub fn poseidon254_hal_pair() -> HalPair<CpuHal<BabyBear>, CpuCircuitHal<'static, CircuitImpl>>
     {
-        let hal = Rc::new(CpuHal::new(Poseidon254HashSuite::new_suite()));
-        let circuit_hal = Rc::new(CpuCircuitHal::new(&CIRCUIT));
+        let hal = Arc::new(CpuHal::new(Poseidon254HashSuite::new_suite()));
+        let circuit_hal = Arc::new(CpuCircuitHal::new(&CIRCUIT));
         HalPair { hal, circuit_hal }
     }
 }
@@ -276,30 +276,30 @@ mod metal {
         },
     };
 
-    use super::{BabyBear, CircuitImpl, CpuCircuitHal, CpuHal, HalPair, Rc, CIRCUIT};
+    use super::{Arc, BabyBear, CircuitImpl, CpuCircuitHal, CpuHal, HalPair, CIRCUIT};
 
     pub fn sha256_hal_pair() -> HalPair<MetalHalSha256, MetalCircuitHal<MetalHashSha256>> {
-        let hal = Rc::new(MetalHalSha256::new());
-        let circuit_hal = Rc::new(MetalCircuitHal::<MetalHashSha256>::new(hal.clone()));
+        let hal = Arc::new(MetalHalSha256::new());
+        let circuit_hal = Arc::new(MetalCircuitHal::<MetalHashSha256>::new(hal.clone()));
         HalPair { hal, circuit_hal }
     }
 
     pub fn poseidon_hal_pair() -> HalPair<MetalHalPoseidon, MetalCircuitHal<MetalHashPoseidon>> {
-        let hal = Rc::new(MetalHalPoseidon::new());
-        let circuit_hal = Rc::new(MetalCircuitHal::<MetalHashPoseidon>::new(hal.clone()));
+        let hal = Arc::new(MetalHalPoseidon::new());
+        let circuit_hal = Arc::new(MetalCircuitHal::<MetalHashPoseidon>::new(hal.clone()));
         HalPair { hal, circuit_hal }
     }
 
     pub fn poseidon2_hal_pair() -> HalPair<MetalHalPoseidon2, MetalCircuitHal<MetalHashPoseidon2>> {
-        let hal = Rc::new(MetalHalPoseidon2::new());
-        let circuit_hal = Rc::new(MetalCircuitHal::<MetalHashPoseidon2>::new(hal.clone()));
+        let hal = Arc::new(MetalHalPoseidon2::new());
+        let circuit_hal = Arc::new(MetalCircuitHal::<MetalHashPoseidon2>::new(hal.clone()));
         HalPair { hal, circuit_hal }
     }
 
     pub fn poseidon254_hal_pair() -> HalPair<CpuHal<BabyBear>, CpuCircuitHal<'static, CircuitImpl>>
     {
-        let hal = Rc::new(CpuHal::new(Poseidon254HashSuite::new_suite()));
-        let circuit_hal = Rc::new(CpuCircuitHal::new(&CIRCUIT));
+        let hal = Arc::new(CpuHal::new(Poseidon254HashSuite::new_suite()));
+        let circuit_hal = Arc::new(CpuCircuitHal::new(&CIRCUIT));
         HalPair { hal, circuit_hal }
     }
 }
@@ -308,36 +308,36 @@ mod cpu {
     use risc0_zkp::core::hash::{poseidon_254::Poseidon254HashSuite, sha::Sha256HashSuite};
 
     use super::{
-        BabyBear, CircuitImpl, CpuCircuitHal, CpuHal, HalPair, Poseidon2HashSuite,
-        PoseidonHashSuite, Rc, CIRCUIT,
+        Arc, BabyBear, CircuitImpl, CpuCircuitHal, CpuHal, HalPair, Poseidon2HashSuite,
+        PoseidonHashSuite, CIRCUIT,
     };
 
     #[allow(dead_code)]
     pub fn sha256_hal_pair() -> HalPair<CpuHal<BabyBear>, CpuCircuitHal<'static, CircuitImpl>> {
-        let hal = Rc::new(CpuHal::new(Sha256HashSuite::new_suite()));
-        let circuit_hal = Rc::new(CpuCircuitHal::new(&CIRCUIT));
+        let hal = Arc::new(CpuHal::new(Sha256HashSuite::new_suite()));
+        let circuit_hal = Arc::new(CpuCircuitHal::new(&CIRCUIT));
         HalPair { hal, circuit_hal }
     }
 
     #[allow(dead_code)]
     pub fn poseidon_hal_pair() -> HalPair<CpuHal<BabyBear>, CpuCircuitHal<'static, CircuitImpl>> {
-        let hal = Rc::new(CpuHal::new(PoseidonHashSuite::new_suite()));
-        let circuit_hal = Rc::new(CpuCircuitHal::new(&CIRCUIT));
+        let hal = Arc::new(CpuHal::new(PoseidonHashSuite::new_suite()));
+        let circuit_hal = Arc::new(CpuCircuitHal::new(&CIRCUIT));
         HalPair { hal, circuit_hal }
     }
 
     #[allow(dead_code)]
     pub fn poseidon2_hal_pair() -> HalPair<CpuHal<BabyBear>, CpuCircuitHal<'static, CircuitImpl>> {
-        let hal = Rc::new(CpuHal::new(Poseidon2HashSuite::new_suite()));
-        let circuit_hal = Rc::new(CpuCircuitHal::new(&CIRCUIT));
+        let hal = Arc::new(CpuHal::new(Poseidon2HashSuite::new_suite()));
+        let circuit_hal = Arc::new(CpuCircuitHal::new(&CIRCUIT));
         HalPair { hal, circuit_hal }
     }
 
     #[allow(dead_code)]
     pub fn poseidon254_hal_pair() -> HalPair<CpuHal<BabyBear>, CpuCircuitHal<'static, CircuitImpl>>
     {
-        let hal = Rc::new(CpuHal::new(Poseidon254HashSuite::new_suite()));
-        let circuit_hal = Rc::new(CpuCircuitHal::new(&CIRCUIT));
+        let hal = Arc::new(CpuHal::new(Poseidon254HashSuite::new_suite()));
+        let circuit_hal = Arc::new(CpuCircuitHal::new(&CIRCUIT));
         HalPair { hal, circuit_hal }
     }
 }

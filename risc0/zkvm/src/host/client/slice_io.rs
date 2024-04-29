@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
 
 use anyhow::Result;
 use bytes::Bytes;
@@ -36,10 +36,10 @@ pub trait SliceIo {
 
 #[derive(Clone, Default)]
 pub struct SliceIoTable<'a> {
-    pub(crate) inner: BTreeMap<String, Rc<RefCell<dyn SliceIo + 'a>>>,
+    pub(crate) inner: BTreeMap<String, Arc<RefCell<dyn SliceIo + 'a>>>,
 }
 
-type Callback<'a> = Rc<RefCell<dyn Fn(Bytes) -> Result<Bytes> + 'a>>;
+type Callback<'a> = Arc<RefCell<dyn Fn(Bytes) -> Result<Bytes> + 'a>>;
 
 struct FnWrapper<'a> {
     callback: Callback<'a>,
@@ -47,9 +47,9 @@ struct FnWrapper<'a> {
 
 pub fn slice_io_from_fn<'a>(
     callback: impl Fn(Bytes) -> Result<Bytes> + 'a,
-) -> Rc<RefCell<dyn SliceIo + 'a>> {
-    let callback = Rc::new(RefCell::new(callback));
-    Rc::new(RefCell::new(FnWrapper { callback }))
+) -> Arc<RefCell<dyn SliceIo + 'a>> {
+    let callback = Arc::new(RefCell::new(callback));
+    Arc::new(RefCell::new(FnWrapper { callback }))
 }
 
 impl<'a> SliceIo for FnWrapper<'a> {
@@ -62,12 +62,12 @@ impl<'a> SliceIo for FnWrapper<'a> {
 impl<'a> SliceIoTable<'a> {
     pub fn with_handler(&mut self, channel: &str, handler: impl SliceIo + 'a) -> &mut Self {
         self.inner
-            .insert(channel.to_string(), Rc::new(RefCell::new(handler)));
+            .insert(channel.to_string(), Arc::new(RefCell::new(handler)));
         self
     }
 }
 
-impl<'a> SliceIo for Rc<RefCell<dyn SliceIo + 'a>> {
+impl<'a> SliceIo for Arc<RefCell<dyn SliceIo + 'a>> {
     fn handle_io(&mut self, syscall: &str, from_guest: Bytes) -> Result<Bytes> {
         self.borrow_mut().handle_io(syscall, from_guest)
     }

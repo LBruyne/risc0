@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use cust::prelude::*;
 use risc0_zkp::{
@@ -38,13 +38,13 @@ use crate::{
 const KERNELS_FATBIN: &[u8] = include_bytes!(env!("RECURSION_CUDA_PATH"));
 
 pub struct CudaCircuitHal<CH: CudaHash> {
-    hal: Rc<CudaHal<CH>>, // retain a reference to ensure the context remains valid
+    hal: Arc<CudaHal<CH>>, // retain a reference to ensure the context remains valid
     module: Module,
 }
 
 impl<CH: CudaHash> CudaCircuitHal<CH> {
     #[tracing::instrument(name = "CudaCircuitHal::new", skip_all)]
-    pub fn new(hal: Rc<CudaHal<CH>>) -> Self {
+    pub fn new(hal: Arc<CudaHal<CH>>) -> Self {
         let module = Module::from_fatbin(KERNELS_FATBIN, &[]).unwrap();
         Self { hal, module }
     }
@@ -118,7 +118,7 @@ pub type CudaCircuitHalPoseidon2 = CudaCircuitHal<CudaHashPoseidon2>;
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     use risc0_core::field::baby_bear::BabyBear;
     use risc0_zkp::{
@@ -135,7 +135,7 @@ mod tests {
         let circuit = CircuitImpl::new();
         let cpu_hal: CpuHal<BabyBear> = CpuHal::new(Sha256HashSuite::new_suite());
         let cpu_eval = CpuCircuitHal::new(&circuit);
-        let gpu_hal = Rc::new(CudaHalSha256::new());
+        let gpu_hal = Arc::new(CudaHalSha256::new());
         let gpu_eval = super::CudaCircuitHalSha256::new(gpu_hal.clone());
         crate::testutil::eval_check(&cpu_hal, cpu_eval, gpu_hal.as_ref(), gpu_eval, PO2);
     }

@@ -21,7 +21,7 @@ pub mod poseidon2;
 pub mod poseidon_254;
 pub mod sha;
 
-use alloc::{boxed::Box, rc::Rc, string::String};
+use alloc::{boxed::Box, string::String, sync::Arc};
 
 use risc0_core::field::Field;
 
@@ -60,7 +60,7 @@ pub trait Rng<F: Field> {
 }
 
 /// Responsible for constructing new Rngs.
-pub trait RngFactory<F: Field> {
+pub trait RngFactory<F: Field>: Sync + Send {
     /// Construct a new Rng
     fn new_rng(&self) -> Box<dyn Rng<F>>;
 }
@@ -71,10 +71,10 @@ pub struct HashSuite<F: Field> {
     pub name: String,
 
     /// Define the hash used by the HashSuite
-    pub hashfn: Rc<dyn HashFn<F>>,
+    pub hashfn: Arc<dyn HashFn<F>>,
 
     /// Define an RNG factory
-    pub rng: Rc<dyn RngFactory<F>>,
+    pub rng: Arc<dyn RngFactory<F>>,
 }
 
 impl<F: Field> Clone for HashSuite<F> {

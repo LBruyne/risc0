@@ -16,7 +16,7 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     io::{stderr, stdout, BufRead, Cursor, Write},
-    rc::Rc,
+    sync::Arc,
 };
 
 use risc0_zkvm_platform::fileno;
@@ -24,8 +24,8 @@ use risc0_zkvm_platform::fileno;
 /// Posix-style I/O
 #[derive(Clone)]
 pub struct PosixIo<'a> {
-    pub(crate) read_fds: BTreeMap<u32, Rc<RefCell<dyn BufRead + 'a>>>,
-    pub(crate) write_fds: BTreeMap<u32, Rc<RefCell<dyn Write + 'a>>>,
+    pub(crate) read_fds: BTreeMap<u32, Arc<RefCell<dyn BufRead + 'a>>>,
+    pub(crate) write_fds: BTreeMap<u32, Arc<RefCell<dyn Write + 'a>>>,
 }
 
 impl<'a> Default for PosixIo<'a> {
@@ -43,12 +43,12 @@ impl<'a> Default for PosixIo<'a> {
 
 impl<'a> PosixIo<'a> {
     pub fn with_read_fd(&mut self, fd: u32, reader: impl BufRead + 'a) -> &mut Self {
-        self.read_fds.insert(fd, Rc::new(RefCell::new(reader)));
+        self.read_fds.insert(fd, Arc::new(RefCell::new(reader)));
         self
     }
 
     pub fn with_write_fd(&mut self, fd: u32, writer: impl Write + 'a) -> &mut Self {
-        self.write_fds.insert(fd, Rc::new(RefCell::new(writer)));
+        self.write_fds.insert(fd, Arc::new(RefCell::new(writer)));
         self
     }
 }

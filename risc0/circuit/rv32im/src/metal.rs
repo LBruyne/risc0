@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use metal::ComputePipelineDescriptor;
 use risc0_core::field::{
@@ -36,12 +36,12 @@ use crate::{
 
 #[derive(Debug)]
 pub struct MetalCircuitHal<MH: MetalHash> {
-    hal: Rc<MetalHal<MH>>,
+    hal: Arc<MetalHal<MH>>,
     kernel: ComputePipelineDescriptor,
 }
 
 impl<MH: MetalHash> MetalCircuitHal<MH> {
-    pub fn new(hal: Rc<MetalHal<MH>>) -> Self {
+    pub fn new(hal: Arc<MetalHal<MH>>) -> Self {
         let library = hal.device.new_library_with_data(METAL_LIB).unwrap();
         let function = library.get_function("eval_check", None).unwrap();
         let kernel = ComputePipelineDescriptor::new();
@@ -93,7 +93,7 @@ impl<MH: MetalHash> CircuitHal<MetalHal<MH>> for MetalCircuitHal<MH> {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     use risc0_core::field::baby_bear::BabyBear;
     use risc0_zkp::{
@@ -113,7 +113,7 @@ mod tests {
         let circuit = crate::CircuitImpl::new();
         let cpu_hal = CpuHal::new(Sha256HashSuite::<BabyBear>::new_suite());
         let cpu_eval = CpuCircuitHal::new(&circuit);
-        let gpu_hal = Rc::new(MetalHalSha256::new());
+        let gpu_hal = Arc::new(MetalHalSha256::new());
         let gpu_eval = super::MetalCircuitHal::new(gpu_hal.clone());
         crate::testutil::eval_check(&cpu_hal, cpu_eval, gpu_hal.as_ref(), gpu_eval, PO2);
     }

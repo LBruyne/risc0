@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use anyhow::{bail, Result};
+use rayon::prelude::*;
 use risc0_circuit_rv32im::{
     layout::{OutBuffer, LAYOUT},
     REGISTER_GROUP_ACCUM, REGISTER_GROUP_CODE, REGISTER_GROUP_DATA,
@@ -62,8 +63,8 @@ where
 
 impl<H, C> ProverServer for ProverImpl<H, C>
 where
-    H: Hal<Field = BabyBear, Elem = Elem, ExtElem = ExtElem>,
-    C: CircuitHal<H>,
+    H: Hal<Field = BabyBear, Elem = Elem, ExtElem = ExtElem> + Sync + Send,
+    C: CircuitHal<H> + Sync + Send,
 {
     fn prove_session(&self, ctx: &VerifierContext, session: &Session) -> Result<Receipt> {
         tracing::info!(
@@ -72,17 +73,42 @@ where
             session.exit_code,
             session.journal.as_ref().map(|x| hex::encode(x))
         );
-        let mut segments = Vec::new();
-        for segment_ref in session.segments.iter() {
-            let segment = segment_ref.resolve()?;
-            for hook in &session.hooks {
-                hook.on_pre_prove_segment(&segment);
-            }
-            segments.push(self.prove_segment(ctx, &segment)?);
-            for hook in &session.hooks {
-                hook.on_post_prove_segment(&segment);
-            }
-        }
+
+        // Hins: Multi-threaded implementation.
+        eprintln!("Proving with multi-threaded implementation...");
+        let segments: Result<Vec<_>> = session
+            .segments
+            .par_iter()
+            .map(|segment_ref| {
+                let segment = segment_ref.resolve()?;
+                // for hook in &session.hooks {
+                //     hook.on_pre_prove_segment(&segment);
+                // }
+                let proved_segment = self.prove_segment(ctx, &segment)?;
+                // for hook in &session.hooks {
+                //     hook.on_post_prove_segment(&segment);
+                // }
+                Ok((segment.index, proved_segment))
+            })
+            .collect();
+        let mut segments = segments?;
+        segments.sort_by_key(|&(index, _)| index);
+        let segments = segments.into_iter().map(|(_, seg)| seg).collect();
+
+        // The original single-threaded.
+        // eprintln!("Proving with single-threaded implementation...");
+        // let mut segments = Vec::new();
+        // for segment_ref in session.segments.iter() {
+        //     let segment = segment_ref.resolve()?;
+        //     for hook in &session.hooks {
+        //         hook.on_pre_prove_segment(&segment);
+        //     }
+        //     segments.push(self.prove_segment(ctx, &segment)?);
+        //     for hook in &session.hooks {
+        //         hook.on_post_prove_segment(&segment);
+        //     }
+        // }
+
         // TODO(#982): Support unresolved assumptions here.
         let composite_receipt = CompositeReceipt {
             segments,
@@ -140,6 +166,9 @@ where
             segment.po2,
             segment.cycles,
         );
+
+        eprintln!("Prove segment_id: {}", segment.index);
+
         let (hal, circuit_hal) = (self.hal_pair.hal.as_ref(), &self.hal_pair.circuit_hal);
         let hashfn = &hal.get_hash_suite().name;
 

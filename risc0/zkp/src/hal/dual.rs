@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{fmt::Debug, marker::PhantomData, rc::Rc};
+use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
 use bytemuck::Pod;
 use risc0_core::field::Field;
@@ -91,8 +91,8 @@ where
     L: Hal<Field = F>,
     R: Hal<Field = F>,
 {
-    lhs: Rc<L>,
-    rhs: Rc<R>,
+    lhs: Arc<L>,
+    rhs: Arc<R>,
 }
 
 impl<F, L, R> DualHal<F, L, R>
@@ -100,7 +100,7 @@ where
     L: Hal<Field = F>,
     R: Hal<Field = F>,
 {
-    pub fn new(lhs: Rc<L>, rhs: Rc<R>) -> Self {
+    pub fn new(lhs: Arc<L>, rhs: Arc<R>) -> Self {
         Self { lhs, rhs }
     }
 }
@@ -335,8 +335,8 @@ where
     LC: CircuitHal<LH>,
     RC: CircuitHal<RH>,
 {
-    lhs: Rc<LC>,
-    rhs: Rc<RC>,
+    lhs: Arc<LC>,
+    rhs: Arc<RC>,
     phantom: PhantomData<(LH, RH)>,
 }
 
@@ -348,7 +348,7 @@ where
     LC: CircuitHal<LH>,
     RC: CircuitHal<RH>,
 {
-    pub fn new(lhs: Rc<LC>, rhs: Rc<RC>) -> Self {
+    pub fn new(lhs: Arc<LC>, rhs: Arc<RC>) -> Self {
         Self {
             lhs,
             rhs,

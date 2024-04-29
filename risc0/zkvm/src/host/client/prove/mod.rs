@@ -17,7 +17,7 @@ pub(crate) mod external;
 #[cfg(feature = "prove")]
 pub(crate) mod local;
 
-use std::{path::PathBuf, rc::Rc};
+use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -133,14 +133,14 @@ impl Default for ProverOpts {
 ///   variables are set unless `RISC0_DEV_MODE` is enabled.
 /// * [local::LocalProver] if the `prove` feature flag is enabled.
 /// * [ExternalProver] otherwise.
-pub fn default_prover() -> Rc<dyn Prover> {
+pub fn default_prover() -> Arc<dyn Prover> {
     let explicit = std::env::var("RISC0_PROVER").unwrap_or_default();
     if !explicit.is_empty() {
         return match explicit.to_lowercase().as_str() {
-            "bonsai" => Rc::new(BonsaiProver::new("bonsai")),
-            "ipc" => Rc::new(ExternalProver::new("ipc", get_r0vm_path())),
+            "bonsai" => Arc::new(BonsaiProver::new("bonsai")),
+            "ipc" => Arc::new(ExternalProver::new("ipc", get_r0vm_path())),
             #[cfg(feature = "prove")]
-            "local" => Rc::new(self::local::LocalProver::new("local")),
+            "local" => Arc::new(self::local::LocalProver::new("local")),
             _ => unimplemented!("Unsupported prover: {explicit}"),
         };
     }
@@ -149,15 +149,15 @@ pub fn default_prover() -> Rc<dyn Prover> {
         && std::env::var("BONSAI_API_URL").is_ok()
         && std::env::var("BONSAI_API_KEY").is_ok()
     {
-        return Rc::new(BonsaiProver::new("bonsai"));
+        return Arc::new(BonsaiProver::new("bonsai"));
     }
 
     if cfg!(feature = "prove") {
         #[cfg(feature = "prove")]
-        return Rc::new(self::local::LocalProver::new("local"));
+        return Arc::new(self::local::LocalProver::new("local"));
     }
 
-    Rc::new(ExternalProver::new("ipc", get_r0vm_path()))
+    Arc::new(ExternalProver::new("ipc", get_r0vm_path()))
 }
 
 /// Return a default [Executor] based on environment variables and feature
@@ -175,23 +175,23 @@ pub fn default_prover() -> Rc<dyn Prover> {
 /// an [Executor]:
 /// * [local::LocalProver] if the `prove` feature flag is enabled.
 /// * [ExternalProver] otherwise.
-pub fn default_executor() -> Rc<dyn Executor> {
+pub fn default_executor() -> Arc<dyn Executor> {
     let explicit = std::env::var("RISC0_EXECUTOR").unwrap_or_default();
     if !explicit.is_empty() {
         return match explicit.to_lowercase().as_str() {
-            "ipc" => Rc::new(ExternalProver::new("ipc", get_r0vm_path())),
+            "ipc" => Arc::new(ExternalProver::new("ipc", get_r0vm_path())),
             #[cfg(feature = "prove")]
-            "local" => Rc::new(self::local::LocalProver::new("local")),
+            "local" => Arc::new(self::local::LocalProver::new("local")),
             _ => unimplemented!("Unsupported executor: {explicit}"),
         };
     }
 
     if cfg!(feature = "prove") {
         #[cfg(feature = "prove")]
-        return Rc::new(self::local::LocalProver::new("local"));
+        return Arc::new(self::local::LocalProver::new("local"));
     }
 
-    Rc::new(ExternalProver::new("ipc", get_r0vm_path()))
+    Arc::new(ExternalProver::new("ipc", get_r0vm_path()))
 }
 
 pub(crate) fn get_r0vm_path() -> PathBuf {

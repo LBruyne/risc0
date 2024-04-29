@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use anyhow::Result;
 use risc0_circuit_rv32im::cpu::CpuCircuitHal;
@@ -70,8 +70,8 @@ fn hashfn_poseidon2() {
 #[test]
 fn hashfn_blake2b() {
     let hal_pair = HalPair {
-        hal: Rc::new(CpuHal::new(Blake2bCpuHashSuite::new_suite())),
-        circuit_hal: Rc::new(CpuCircuitHal::new(&CIRCUIT)),
+        hal: Arc::new(CpuHal::new(Blake2bCpuHashSuite::new_suite())),
+        circuit_hal: Arc::new(CpuCircuitHal::new(&CIRCUIT)),
     };
     let env = ExecutorEnv::builder()
         .write(&MultiTestSpec::DoNothing)
@@ -251,15 +251,15 @@ fn memory_io() {
 
 #[test]
 fn session_events() {
-    use std::{cell::RefCell, rc::Rc};
+    use std::{cell::RefCell, sync::Arc};
 
     use risc0_zkvm_methods::HELLO_COMMIT_ELF;
 
     use crate::{Segment, SessionEvents};
 
     struct Logger {
-        on_pre_prove_segment_flag: Rc<RefCell<bool>>,
-        on_post_prove_segment_flag: Rc<RefCell<bool>>,
+        on_pre_prove_segment_flag: Arc<RefCell<bool>>,
+        on_post_prove_segment_flag: Arc<RefCell<bool>>,
     }
 
     impl SessionEvents for Logger {
@@ -274,8 +274,8 @@ fn session_events() {
 
     let mut exec = ExecutorImpl::from_elf(ExecutorEnv::default(), HELLO_COMMIT_ELF).unwrap();
     let mut session = exec.run().unwrap();
-    let on_pre_prove_segment_flag = Rc::new(RefCell::new(false));
-    let on_post_prove_segment_flag = Rc::new(RefCell::new(false));
+    let on_pre_prove_segment_flag = Arc::new(RefCell::new(false));
+    let on_post_prove_segment_flag = Arc::new(RefCell::new(false));
     let logger = Logger {
         on_pre_prove_segment_flag: on_pre_prove_segment_flag.clone(),
         on_post_prove_segment_flag: on_post_prove_segment_flag.clone(),

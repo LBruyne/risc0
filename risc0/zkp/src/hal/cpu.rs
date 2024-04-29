@@ -18,7 +18,7 @@ use core::{
     cell::{Ref, RefMut},
     ops::Range,
 };
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, sync::Arc};
 
 use bytemuck::Pod;
 use ndarray::{ArrayView, ArrayViewMut, Axis};
@@ -89,7 +89,7 @@ impl<T> Drop for TrackedVec<T> {
 
 #[derive(Clone)]
 pub struct CpuBuffer<T> {
-    buf: Rc<RefCell<TrackedVec<T>>>,
+    buf: Arc<RefCell<TrackedVec<T>>>,
     region: Region,
 }
 
@@ -162,7 +162,7 @@ impl<T: Default + Clone + Pod> CpuBuffer<T> {
     fn new(size: usize) -> Self {
         let buf = vec![T::default(); size];
         CpuBuffer {
-            buf: Rc::new(RefCell::new(TrackedVec::new(buf))),
+            buf: Arc::new(RefCell::new(TrackedVec::new(buf))),
             region: Region(0, size),
         }
     }
@@ -174,7 +174,7 @@ impl<T: Default + Clone + Pod> CpuBuffer<T> {
     fn copy_from(slice: &[T]) -> Self {
         let bytes = bytemuck::cast_slice(slice);
         CpuBuffer {
-            buf: Rc::new(RefCell::new(TrackedVec::new(Vec::from(bytes)))),
+            buf: Arc::new(RefCell::new(TrackedVec::new(Vec::from(bytes)))),
             region: Region(0, slice.len()),
         }
     }
@@ -185,7 +185,7 @@ impl<T: Default + Clone + Pod> CpuBuffer<T> {
     {
         let vec = (0..size).map(f).collect();
         CpuBuffer {
-            buf: Rc::new(RefCell::new(TrackedVec::new(vec))),
+            buf: Arc::new(RefCell::new(TrackedVec::new(vec))),
             region: Region(0, size),
         }
     }
@@ -215,7 +215,7 @@ impl<T: Default + Clone + Pod> From<Vec<T>> for CpuBuffer<T> {
     fn from(vec: Vec<T>) -> CpuBuffer<T> {
         let size = vec.len();
         CpuBuffer {
-            buf: Rc::new(RefCell::new(TrackedVec::new(vec))),
+            buf: Arc::new(RefCell::new(TrackedVec::new(vec))),
             region: Region(0, size),
         }
     }
@@ -230,7 +230,7 @@ impl<T: Pod> Buffer<T> for CpuBuffer<T> {
         assert!(offset + size <= self.size());
         let region = Region(self.region.offset() + offset, size);
         CpuBuffer {
-            buf: Rc::clone(&self.buf),
+            buf: Arc::clone(&self.buf),
             region,
         }
     }

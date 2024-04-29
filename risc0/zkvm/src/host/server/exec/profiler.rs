@@ -24,7 +24,7 @@ use std::{
     collections::HashMap,
     fmt::Write,
     hash::{Hash, Hasher},
-    rc::Rc,
+    sync::Arc,
 };
 
 use addr2line::{
@@ -102,7 +102,7 @@ struct CallNode {
     pub(crate) counts: HashMap<u32, usize>,
 
     /// Nodes representing further calls from this context.
-    pub(crate) calls: HashMap<u32, Rc<RefCell<CallNode>>>,
+    pub(crate) calls: HashMap<u32, Arc<RefCell<CallNode>>>,
 }
 
 impl CallNode {
@@ -150,10 +150,10 @@ pub struct Profiler {
     call_stack_path: Vec<u32>,
 
     // Root of the tree used to store samples attributable to a call stack.
-    root: Rc<RefCell<CallNode>>,
+    root: Arc<RefCell<CallNode>>,
 
     // Current CallNode in the stack
-    current_node: Option<Rc<RefCell<CallNode>>>,
+    current_node: Option<Arc<RefCell<CallNode>>>,
 
     // Current CallNode key in the stack
     current_key: u32,
@@ -212,13 +212,13 @@ impl Profiler {
     pub fn new(elf_data: &[u8], filename: Option<&str>) -> Result<Self> {
         let file = File::parse(elf_data)?;
         let ctx = ObjectContext::new(&file)?;
-        let root = Rc::new(RefCell::new(CallNode::default()));
+        let root = Arc::new(RefCell::new(CallNode::default()));
         let mut profiler = Profiler {
             pc: u32::MAX,
             insn: 0,
             cycle: 0,
             pop_stack: Vec::new(),
-            root: Rc::clone(&root),
+            root: Arc::clone(&root),
             current_node: Some(root),
             current_key: 0,
             call_stack_path: Vec::new(),
@@ -299,7 +299,7 @@ impl Profiler {
 
     /// Walk the profile tree rooted at node_ref, adding all call stacks in the profile to the
     /// profile under construction. All call stacks encountered build on top of the base_stack.
-    fn walk_stacks(&mut self, node_ref: Rc<RefCell<CallNode>>, base_stack: Vec<Frame>) {
+    fn walk_stacks(&mut self, node_ref: Arc<RefCell<CallNode>>, base_stack: Vec<Frame>) {
         let node = node_ref.borrow();
         for (&pc, count) in &node.counts {
             let mut new_stack = base_stack.clone();
@@ -343,7 +343,7 @@ impl Profiler {
     /// Count and save the profiling samples, write the results to `output_path`.
     #[cfg(test)]
     pub(crate) fn finalize(mut self) -> ProfileBuilder {
-        let root_ref = Rc::clone(&self.root);
+        let root_ref = Arc::clone(&self.root);
         tracing::debug!("{}", self.root.borrow().fmt(0, &self));
         self.walk_stacks(root_ref, Vec::new());
         self.profile
@@ -352,7 +352,7 @@ impl Profiler {
     /// Count and save the profiling samples, consuming the profiler and
     /// returning the compiled profile protobuf, encoded as bytes.
     pub fn finalize_to_vec(&mut self) -> Vec<u8> {
-        let root_ref = Rc::clone(&self.root);
+        let root_ref = Arc::clone(&self.root);
         tracing::debug!("{}", self.root.borrow().fmt(0, &self));
         self.walk_stacks(root_ref, Vec::new());
         self.profile.profile.encode_to_vec()
@@ -415,10 +415,10 @@ impl TraceCallback for Profiler {
                         }
                     }
 
-                    let mut curr_node = Rc::clone(&self.root);
+                    let mut curr_node = Arc::clone(&self.root);
                     for (i, &call_stack_key) in self.call_stack_path.iter().enumerate() {
                         if i == self.call_stack_path.len() - 1 {
-                            self.current_node = Some(Rc::clone(&curr_node));
+                            self.current_node = Some(Arc::clone(&curr_node));
                             self.current_key = *self.call_stack_path.last().ok_or_else(|| {
                                 anyhow!("attempted to access an empty call stack")
                             })?;
@@ -428,7 +428,7 @@ impl TraceCallback for Profiler {
                             curr_node_borrowed
                                 .calls
                                 .entry(call_stack_key)
-                                .or_insert_with(|| Rc::new(RefCell::new(CallNode::default())))
+                                .or_insert_with(|| Arc::new(RefCell::new(CallNode::default())))
                                 .clone()
                         };
                         curr_node = next_node;

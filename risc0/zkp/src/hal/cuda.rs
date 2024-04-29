@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{cell::RefCell, fmt::Debug, marker::PhantomData, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, marker::PhantomData, sync::Arc};
 
 use bytemuck::Pod;
 use cust::{
@@ -340,7 +340,7 @@ impl Drop for RawBuffer {
 
 #[derive(Clone)]
 pub struct BufferImpl<T> {
-    buffer: Rc<RefCell<RawBuffer>>,
+    buffer: Arc<RefCell<RawBuffer>>,
     size: usize,
     offset: usize,
     marker: PhantomData<T>,
@@ -351,7 +351,7 @@ impl<T: Pod> BufferImpl<T> {
         let bytes_len = std::mem::size_of::<T>() * size;
         assert!(bytes_len > 0);
         BufferImpl {
-            buffer: Rc::new(RefCell::new(RawBuffer::new(name, bytes_len))),
+            buffer: Arc::new(RefCell::new(RawBuffer::new(name, bytes_len))),
             size,
             offset: 0,
             marker: PhantomData,
@@ -365,7 +365,7 @@ impl<T: Pod> BufferImpl<T> {
         let bytes = bytemuck::cast_slice(slice);
         buffer.buf.copy_from(bytes).unwrap();
         BufferImpl {
-            buffer: Rc::new(RefCell::new(buffer)),
+            buffer: Arc::new(RefCell::new(buffer)),
             size: slice.len(),
             offset: 0,
             marker: PhantomData,
