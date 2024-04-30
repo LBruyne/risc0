@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{cell::RefCell, fmt::Debug, marker::PhantomData, sync::Arc};
+use std::{
+    // cell::RefCell,
+    fmt::Debug,
+    marker::PhantomData,
+    sync::{Arc, RwLock},
+};
 
 use bytemuck::Pod;
 use cust::{
@@ -340,7 +345,7 @@ impl Drop for RawBuffer {
 
 #[derive(Clone)]
 pub struct BufferImpl<T> {
-    buffer: Arc<RefCell<RawBuffer>>,
+    buffer: Arc<RwLock<RawBuffer>>,
     size: usize,
     offset: usize,
     marker: PhantomData<T>,
@@ -351,7 +356,7 @@ impl<T: Pod> BufferImpl<T> {
         let bytes_len = std::mem::size_of::<T>() * size;
         assert!(bytes_len > 0);
         BufferImpl {
-            buffer: Arc::new(RefCell::new(RawBuffer::new(name, bytes_len))),
+            buffer: Arc::new(RwLock::new(RawBuffer::new(name, bytes_len))),
             size,
             offset: 0,
             marker: PhantomData,
@@ -365,7 +370,7 @@ impl<T: Pod> BufferImpl<T> {
         let bytes = bytemuck::cast_slice(slice);
         buffer.buf.copy_from(bytes).unwrap();
         BufferImpl {
-            buffer: Arc::new(RefCell::new(buffer)),
+            buffer: Arc::new(RwLock::new(buffer)),
             size: slice.len(),
             offset: 0,
             marker: PhantomData,
@@ -373,13 +378,13 @@ impl<T: Pod> BufferImpl<T> {
     }
 
     pub fn as_device_ptr(&self) -> DevicePointer<u8> {
-        let ptr = self.buffer.borrow_mut().buf.as_device_ptr();
+        let ptr = self.buffer.write().unwrap().buf.as_device_ptr();
         let offset = self.offset * std::mem::size_of::<T>();
         unsafe { ptr.offset(offset.try_into().unwrap()) }
     }
 
     pub fn as_device_ptr_with_offset(&self, offset: usize) -> DevicePointer<u8> {
-        let ptr = self.buffer.borrow_mut().buf.as_device_ptr();
+        let ptr = self.buffer.write().unwrap().buf.as_device_ptr();
         let offset = (self.offset + offset) * std::mem::size_of::<T>();
         unsafe { ptr.offset(offset.try_into().unwrap()) }
     }
@@ -401,14 +406,14 @@ impl<T: Pod> Buffer<T> for BufferImpl<T> {
     }
 
     fn view<F: FnOnce(&[T])>(&self, f: F) {
-        let buf = self.buffer.borrow_mut();
+        let buf = self.buffer.write().unwrap();
         let host_buf = buf.buf.as_host_vec().unwrap();
         let slice = bytemuck::cast_slice(&host_buf);
         f(&slice[self.offset..]);
     }
 
     fn view_mut<F: FnOnce(&mut [T])>(&self, f: F) {
-        let mut buf = self.buffer.borrow_mut();
+        let mut buf = self.buffer.write().unwrap();
         let mut host_buf = buf.buf.as_host_vec().unwrap();
         let slice = bytemuck::cast_slice_mut(&mut host_buf);
         f(&mut slice[self.offset..]);
