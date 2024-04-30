@@ -74,6 +74,8 @@ where
             session.journal.as_ref().map(|x| hex::encode(x))
         );
 
+        eprintln!("Total segments_#: {}", session.segments.len());
+
         // Hins: Multi-threaded implementation.
         eprintln!("Proving with multi-threaded implementation...");
         let segments: Result<Vec<_>> = session
@@ -100,13 +102,13 @@ where
         // let mut segments = Vec::new();
         // for segment_ref in session.segments.iter() {
         //     let segment = segment_ref.resolve()?;
-        //     for hook in &session.hooks {
-        //         hook.on_pre_prove_segment(&segment);
-        //     }
+        //     // for hook in &session.hooks {
+        //     //     hook.on_pre_prove_segment(&segment);
+        //     // }
         //     segments.push(self.prove_segment(ctx, &segment)?);
-        //     for hook in &session.hooks {
-        //         hook.on_post_prove_segment(&segment);
-        //     }
+        //     // for hook in &session.hooks {
+        //     //     hook.on_post_prove_segment(&segment);
+        //     // }
         // }
 
         // TODO(#982): Support unresolved assumptions here.
@@ -177,12 +179,16 @@ where
         let po2 = segment.po2 as usize;
         let mut executor = Executor::new(&CIRCUIT, machine, po2, po2, &io);
 
+        // eprintln!("Prove segment state: $0");
+
         let loader = Loader::new();
         loader.load(|chunk, fini| executor.step(chunk, fini))?;
         executor.finalize();
 
         let mut adapter = ProveAdapter::new(&mut executor);
         let mut prover = risc0_zkp::prove::Prover::new(hal, CIRCUIT.get_taps());
+
+        // eprintln!("Prove segment state: $1");
 
         adapter.execute(prover.iop());
 
