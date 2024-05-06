@@ -1,0 +1,21 @@
+[package]
+name = "voting-machine"
+version = "0.12.0"
+edition = "2021"
+
+[dependencies]
+risc0-zkvm = { path = "../../risc0/zkvm" }
+tracing = { version = "0.1", features = ["log"] }
+voting-machine-core = { path = "core" }
+voting-machine-methods = { path = "methods" }
+
+[dev-dependencies]
+hex = "0.4"
+test-log = { version = "0.2", default-features = false, features = ["trace"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[features]
+cuda = ["risc0-zkvm/cuda"]
+default = []
+metal = ["risc0-zkvm/metal"]
+prove = ["risc0-zkvm/prove"]

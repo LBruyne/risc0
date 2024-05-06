@@ -1,0 +1,44 @@
+[workspace]
+resolver = "2"
+members = [
+  "bevy",
+  "browser-verify",
+  "chess",
+  "chess/core",
+  "composition",
+  "cycle-counter",
+  "digital-signature",
+  "digital-signature/core",
+  "ecdsa",
+  "groth16-verifier",
+  "hello-world",
+  "json",
+  "json/core",
+  "jwt-validator",
+  "jwt-validator/core",
+  "password-checker",
+  "password-checker/core",
+  "profiling",
+  "prorata",
+  "prorata/core",
+  "sha",
+  "smartcore-ml",
+  "voting-machine",
+  "voting-machine/core",
+  "waldo",
+  "waldo/core",
+  "wasm",
+  "wordle",
+  "wordle/core",
+  "xgboost",
+  "zkevm-demo",
+  "zkevm-demo/core",
+]
+
+# Always optimize; otherwise tests take excessively long.
+[profile.dev]
+opt-level = 3
+
+[profile.release]
+debug = 1
+lto = true
